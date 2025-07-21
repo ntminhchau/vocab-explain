@@ -38,7 +38,7 @@
       tooltip.innerText = 'Loading...';
 
       try {
-        const res = await fetch(`https://YOUR_WORKER_URL_HERE/?word=${encodeURIComponent(word)}`);
+        const res = await fetch(`https://late-dust-9be4.chauminh911.workers.dev/?word=${encodeURIComponent(word)}`);
         const data = await res.json();
         tooltip.innerText = data.explanation;
       } catch (e) {
