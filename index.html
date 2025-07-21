@@ -1,71 +1,108 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>Vocab Reader</title>
+  <title>Vocabulary AI Explainer</title>
   <style>
-    /* tooltip style */
-    .tooltip-box {
-      position: absolute;
-      background: #fffbe6;
-      border: 1px solid #ccc;
-      border-radius: 8px;
-      padding: 10px;
-      max-width: 300px;
-      font-size: 14px;
-      box-shadow: 2px 2px 6px rgba(0,0,0,0.1);
-      z-index: 1000;
-      display: none;
-      pointer-events: none;
+    body {
+      display: flex;
+      font-family: sans-serif;
+      margin: 0;
+      padding: 0;
+    }
+    #main {
+      flex: 3;
+      padding: 1rem;
+      border-right: 1px solid #ddd;
+    }
+    #sidebar {
+      flex: 1;
+      padding: 1rem;
+      background: #f9f9f9;
+      overflow-y: auto;
+    }
+    #input-area, #output {
+      margin-bottom: 1rem;
+    }
+    #text-output span {
+      cursor: pointer;
+    }
+    #text-output span:hover {
+      background: #fff3cd;
+    }
+    .highlight {
+      background-color: #d4edda;
+    }
+    .saved-word {
+      background: #e2e3e5;
+      padding: 4px 6px;
+      border-radius: 4px;
+      display: inline-block;
+      margin: 4px 0;
     }
   </style>
 </head>
 <body>
-  <p>
-    He felt <span class="vocab-word">relieved</span> after the exam.
-  </p>
+  <div id="main">
+    <h2>Paste a passage below:</h2>
+    <textarea id="input-area" rows="5" style="width: 100%;"></textarea>
+    <button onclick="loadText()">Load Passage</button>
+    <div id="output">
+      <h3>Clickable Text:</h3>
+      <div id="text-output"></div>
+    </div>
+  </div>
 
-  <div id="tooltip" class="tooltip-box"></div>
+  <div id="sidebar">
+    <h3>Word Explanation</h3>
+    <div id="explanation">Click a word to see its meaning.</div>
+    <hr>
+    <h4>Saved Words</h4>
+    <div id="saved-words"></div>
+  </div>
 
   <script>
-    const tooltip = document.getElementById('tooltip');
-    let hideTimer;
+    const explanationBox = document.getElementById("explanation");
+    const savedWords = document.getElementById("saved-words");
 
-    async function explainWord(word, x, y) {
-      tooltip.style.display = 'block';
-      tooltip.style.left = `${x}px`;
-      tooltip.style.top = `${y}px`;
-      tooltip.innerText = 'Loading...';
+    function loadText() {
+      const text = document.getElementById("input-area").value;
+      const words = text.split(/(\b\w+\b)/g);
+      const container = document.getElementById("text-output");
+      container.innerHTML = "";
+
+      words.forEach(word => {
+        if (/\w/.test(word)) {
+          const span = document.createElement("span");
+          span.textContent = word;
+          span.onclick = () => fetchExplanation(word, span);
+          container.appendChild(span);
+        } else {
+          container.appendChild(document.createTextNode(word));
+        }
+      });
+    }
+
+    async function fetchExplanation(word, element) {
+      explanationBox.textContent = "Loading...";
+      document.querySelectorAll("#text-output span").forEach(s => s.classList.remove("highlight"));
+      element.classList.add("highlight");
 
       try {
         const res = await fetch(`https://late-dust-9be4.chauminh911.workers.dev/?word=${encodeURIComponent(word)}`);
         const data = await res.json();
-        tooltip.innerText = data.explanation;
-      } catch (e) {
-        tooltip.innerText = 'Could not load explanation.';
+        explanationBox.innerHTML = `<strong>${word}</strong>:<br>${data.explanation}<br><br><button onclick='saveWord("${word}", "${data.explanation.replace(/"/g, '&quot;')}")'>Save</button>`;
+      } catch (err) {
+        explanationBox.textContent = "Error fetching explanation.";
       }
-
-      clearTimeout(hideTimer);
-      hideTimer = setTimeout(() => {
-        tooltip.style.display = 'none';
-      }, 12000);
     }
 
-    function handleEvent(e) {
-      const target = e.target.closest('.vocab-word');
-      if (!target) return;
-
-      const word = target.innerText.trim();
-      const rect = target.getBoundingClientRect();
-
-      const x = e.clientX || (rect.left + rect.width / 2 + window.scrollX);
-      const y = e.clientY || (rect.top + rect.height + window.scrollY + 5);
-
-      explainWord(word, x, y);
+    function saveWord(word, definition) {
+      const box = document.createElement("div");
+      box.className = "saved-word";
+      box.innerHTML = `<strong>${word}</strong>: ${definition}`;
+      savedWords.appendChild(box);
     }
-
-    document.addEventListener('click', handleEvent);
-    document.addEventListener('touchstart', handleEvent);
   </script>
 </body>
 </html>
